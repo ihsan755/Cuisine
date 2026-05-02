@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Recipe - Cuisine</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <h1>Cuisine</h1>
+        <p>Share step-by-step recipes from around the world</p>
+        <nav>
+            <a href="index.html">Home</a>
+            <a href="upload.html">Upload Recipe</a>
+            <a href="about.html">About</a>
+            <a href="contact.html">Contact</a>
+            <a href="profile.html">Profile</a>
+        </nav>
+        <div id="user-section">
+            <span id="user-greeting"></span>
+            <button id="login-btn" onclick="showLoginModal()">Login</button>
+            <button id="register-btn" onclick="showRegisterModal()">Register</button>
+            <button id="logout-btn" onclick="logout()" style="display:none;">Logout</button>
+        </div>
+    </header>
+    <main>
+        <section>
+            <h2>Upload Your Recipe</h2>
+            <form id="upload-form">
+                <label for="title">Recipe Title:</label>
+                <input type="text" id="title" required>
+
+                <label for="description">Description:</label>
+                <textarea id="description" required></textarea>
+
+                <label for="cuisine">Cuisine:</label>
+                <select id="cuisine" required>
+                    <option value="">Select Cuisine</option>
+                    <option value="Italian">Italian</option>
+                    <option value="Mexican">Mexican</option>
+                    <option value="Indian">Indian</option>
+                    <option value="Chinese">Chinese</option>
+                    <option value="French">French</option>
+                    <option value="Japanese">Japanese</option>
+                    <option value="Thai">Thai</option>
+                    <option value="Other">Other</option>
+                </select>
+
+                <label for="ingredients">Ingredients (one per line):</label>
+                <textarea id="ingredients" placeholder="Ingredient 1&#10;Ingredient 2&#10;..." required></textarea>
+
+                <label for="prep-time">Prep Time (minutes):</label>
+                <input type="number" id="prep-time" min="0" required>
+
+                <label for="cook-time">Cook Time (minutes):</label>
+                <input type="number" id="cook-time" min="0" required>
+
+                <label for="servings">Servings:</label>
+                <input type="number" id="servings" min="1" required>
+
+                <label for="tags">Tags (comma separated):</label>
+                <input type="text" id="tags" placeholder="e.g., vegetarian, spicy">
+
+                <label for="steps">Steps (describe each step, and optionally add image/video):</label>
+                <div id="steps-container">
+                    <div class="step">
+                        <textarea placeholder="Step 1 description" required></textarea>
+                        <input type="file" accept="image/*,video/*">
+                    </div>
+                </div>
+                <button type="button" id="add-step">Add Step</button>
+
+                <button type="submit">Upload Recipe</button>
+            </form>
+        </section>
+    </main>
+    <footer>
+        <p>&copy; 2026 Cuisine. Share your culinary creations!</p>
+        <div>
+            <a href="#">Privacy Policy</a> | <a href="#">Terms of Service</a>
+        </div>
+    </footer>
+    <div id="login-modal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('login-modal')">&times;</span>
+            <h2>Login</h2>
+            <form id="login-form">
+                <label for="login-username">Username:</label>
+                <input type="text" id="login-username" required>
+                <label for="login-password">Password:</label>
+                <input type="password" id="login-password" required>
+                <button type="submit">Login</button>
+            </form>
+        </div>
+    </div>
+    <div id="register-modal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('register-modal')">&times;</span>
+            <h2>Register</h2>
+            <form id="register-form">
+                <label for="reg-username">Username:</label>
+                <input type="text" id="reg-username" required>
+                <label for="reg-email">Email:</label>
+                <input type="email" id="reg-email" required>
+                <label for="reg-password">Password:</label>
+                <input type="password" id="reg-password" required>
+                <button type="submit">Register</button>
+            </form>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>

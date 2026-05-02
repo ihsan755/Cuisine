@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cuisine - Share Your Recipes</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <h1>Cuisine</h1>
+        <p>Share step-by-step recipes from around the world</p>
+        <nav>
+            <a href="index.html">Home</a>
+            <a href="upload.html">Upload Recipe</a>
+            <a href="about.html">About</a>
+            <a href="contact.html">Contact</a>
+            <a href="profile.html">Profile</a>
+        </nav>
+        <div id="user-section">
+            <span id="user-greeting"></span>
+            <button id="login-btn" onclick="showLoginModal()">Login</button>
+            <button id="register-btn" onclick="showRegisterModal()">Register</button>
+            <button id="logout-btn" onclick="logout()" style="display:none;">Logout</button>
+        </div>
+    </header>
+    <main>
+        <aside id="sidebar">
+            <h3>Filters</h3>
+            <label for="cuisine-filter">Cuisine:</label>
+            <select id="cuisine-filter">
+                <option value="">All</option>
+                <option value="Italian">Italian</option>
+                <option value="Mexican">Mexican</option>
+                <option value="Indian">Indian</option>
+                <option value="Chinese">Chinese</option>
+                <option value="French">French</option>
+                <option value="Japanese">Japanese</option>
+                <option value="Thai">Thai</option>
+                <option value="Other">Other</option>
+            </select>
+            <label for="search">Search:</label>
+            <input type="text" id="search" placeholder="Search recipes...">
+            <button onclick="applyFilters()">Apply Filters</button>
+            <button onclick="clearFilters()">Clear</button>
+        </aside>
+        <section id="recipes">
+            <h2>Featured Recipes</h2>
+            <div id="recipe-list">
+                <!-- Recipes will be loaded here -->
+            </div>
+            <div id="pagination">
+                <button onclick="prevPage()">Previous</button>
+                <span id="page-info"></span>
+                <button onclick="nextPage()">Next</button>
+            </div>
+        </section>
+        <section id="recipe-view" style="display:none;">
+            <h2 id="view-title"></h2>
+            <p id="view-description"></p>
+            <p><strong>Cuisine:</strong> <span id="view-cuisine"></span></p>
+            <p><strong>Author:</strong> <span id="view-author"></span></p>
+            <p><strong>Rating:</strong> <span id="view-rating"></span> <button onclick="rateRecipe()">Rate</button></p>
+            <div id="view-ingredients"></div>
+            <div id="view-steps"></div>
+            <div id="comments-section">
+                <h3>Comments</h3>
+                <div id="comments-list"></div>
+                <textarea id="new-comment" placeholder="Add a comment..."></textarea>
+                <button onclick="addComment()">Post Comment</button>
+            </div>
+            <button onclick="likeRecipe()">Like</button> <span id="like-count"></span>
+            <button onclick="closeView()">Close</button>
+            <button onclick="printRecipe()">Print Recipe</button>
+        </section>
+    </main>
+    <footer>
+        <p>&copy; 2026 Cuisine. Share your culinary creations!</p>
+        <div>
+            <a href="#">Privacy Policy</a> | <a href="#">Terms of Service</a>
+        </div>
+    </footer>
+    <div id="login-modal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('login-modal')">&times;</span>
+            <h2>Login</h2>
+            <form id="login-form">
+                <label for="login-email">Email:</label>
+                <input type="email" id="login-email" required>
+                <label for="login-password">Password:</label>
+                <input type="password" id="login-password" required>
+                <button type="submit">Login</button>
+            </form>
+        </div>
+    </div>
+    <div id="register-modal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('register-modal')">&times;</span>
+            <h2>Register</h2>
+            <form id="register-form">
+                <label for="reg-email">Email:</label>
+                <input type="email" id="reg-email" required>
+                <label for="reg-password">Password:</label>
+                <input type="password" id="reg-password" required>
+                <label for="reg-password-confirm">Confirm Password:</label>
+                <input type="password" id="reg-password-confirm" required>
+                <button type="submit">Register</button>
+            </form>
+        </div>
+    </div>
+    <div id="rate-modal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('rate-modal')">&times;</span>
+            <h2>Rate Recipe</h2>
+            <select id="rating-select">
+                <option value="1">1 Star</option>
+                <option value="2">2 Stars</option>
+                <option value="3">3 Stars</option>
+                <option value="4">4 Stars</option>
+                <option value="5">5 Stars</option>
+            </select>
+            <button onclick="submitRating()">Submit</button>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>

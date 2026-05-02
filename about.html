@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>About - Cuisine</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <h1>Cuisine</h1>
+        <p>Share step-by-step recipes from around the world</p>
+        <nav>
+            <a href="index.html">Home</a>
+            <a href="upload.html">Upload Recipe</a>
+            <a href="about.html">About</a>
+            <a href="contact.html">Contact</a>
+            <a href="profile.html">Profile</a>
+        </nav>
+        <div id="user-section">
+            <span id="user-greeting"></span>
+            <button id="login-btn" onclick="showLoginModal()">Login</button>
+            <button id="register-btn" onclick="showRegisterModal()">Register</button>
+            <button id="logout-btn" onclick="logout()" style="display:none;">Logout</button>
+        </div>
+    </header>
+    <main>
+        <section>
+            <h2>About Cuisine</h2>
+            <p>Cuisine is a platform where food enthusiasts from around the world can share their favorite recipes. Whether you're a professional chef or a home cook, you can upload step-by-step guides with images and videos to help others recreate your delicious dishes.</p>
+            <p>Our mission is to bring people together through the love of food, celebrating diverse cuisines and culinary traditions.</p>
+            <h3>Features</h3>
+            <ul>
+                <li>Upload recipes with detailed steps</li>
+                <li>Include images and videos in your instructions</li>
+                <li>Browse recipes by cuisine</li>
+                <li>Rate and comment on recipes</li>
+                <li>Search and filter recipes</li>
+                <li>User profiles and favorites</li>
+            </ul>
+        </section>
+    </main>
+    <footer>
+        <p>&copy; 2026 Cuisine. Share your culinary creations!</p>
+        <div>
+            <a href="#">Privacy Policy</a> | <a href="#">Terms of Service</a>
+        </div>
+    </footer>
+    <div id="login-modal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('login-modal')">&times;</span>
+            <h2>Login</h2>
+            <form id="login-form">
+                <label for="login-username">Username:</label>
+                <input type="text" id="login-username" required>
+                <label for="login-password">Password:</label>
+                <input type="password" id="login-password" required>
+                <button type="submit">Login</button>
+            </form>
+        </div>
+    </div>
+    <div id="register-modal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('register-modal')">&times;</span>
+            <h2>Register</h2>
+            <form id="register-form">
+                <label for="reg-username">Username:</label>
+                <input type="text" id="reg-username" required>
+                <label for="reg-email">Email:</label>
+                <input type="email" id="reg-email" required>
+                <label for="reg-password">Password:</label>
+                <input type="password" id="reg-password" required>
+                <button type="submit">Register</button>
+            </form>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
