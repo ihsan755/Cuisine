@@ -1,6 +1,6 @@
 # Cuisine Recipe Website
 
-A comprehensive cooking recipe sharing website where users can upload step-by-step recipes with images and videos. Features user authentication, ratings, comments, search, and more.
+A comprehensive cooking recipe sharing website where users can upload step-by-step recipes with images and videos. 
 
 ## Features
 
