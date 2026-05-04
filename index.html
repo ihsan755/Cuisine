@@ -50,28 +50,40 @@
                 <!-- Recipes will be loaded here -->
             </div>
             <div id="pagination">
-                <button onclick="prevPage()">Previous</button>
-                <span id="page-info"></span>
-                <button onclick="nextPage()">Next</button>
+                <button id="prev-btn" onclick="prevPage()">Previous</button>
+                <span id="page-info">Page 1 of 1</span>
+                <button id="next-btn" onclick="nextPage()">Next</button>
             </div>
         </section>
         <section id="recipe-view" style="display:none;">
             <h2 id="view-title"></h2>
-            <p id="view-description"></p>
-            <p><strong>Cuisine:</strong> <span id="view-cuisine"></span></p>
-            <p><strong>Author:</strong> <span id="view-author"></span></p>
-            <p><strong>Rating:</strong> <span id="view-rating"></span> <button onclick="rateRecipe()">Rate</button></p>
-            <div id="view-ingredients"></div>
-            <div id="view-steps"></div>
-            <div id="comments-section">
-                <h3>Comments</h3>
-                <div id="comments-list"></div>
-                <textarea id="new-comment" placeholder="Add a comment..."></textarea>
-                <button onclick="addComment()">Post Comment</button>
+            <div class="recipe-meta">
+                <p><strong>Cuisine:</strong> <span id="view-cuisine"></span></p>
+                <p><strong>Author:</strong> <span id="view-author"></span></p>
+                <p><strong>Rating:</strong> <span id="view-rating"></span> ⭐</p>
+                <p><strong>Prep Time:</strong> <span id="view-prep-time"></span> mins</p>
+                <p><strong>Cook Time:</strong> <span id="view-cook-time"></span> mins</p>
+                <p><strong>Servings:</strong> <span id="view-servings"></span></p>
             </div>
-            <button onclick="likeRecipe()">Like</button> <span id="like-count"></span>
-            <button onclick="closeView()">Close</button>
-            <button onclick="printRecipe()">Print Recipe</button>
+            <p id="view-description"></p>
+            <div id="view-ingredients">
+                <h3>Ingredients</h3>
+            </div>
+            <div id="view-steps">
+                <h3>Instructions</h3>
+            </div>
+            <div id="comments-section">
+                <h3>Comments & Reviews</h3>
+                <div id="comments-list"></div>
+                <textarea id="new-comment" placeholder="Share your thoughts about this recipe..."></textarea>
+                <div class="action-buttons">
+                    <button onclick="addComment()">Post Comment</button>
+                    <button class="like-button" onclick="likeRecipe()">👍 Like (<span id="like-count">0</span>)</button>
+                    <button class="rate-button" onclick="rateRecipe()">⭐ Rate Recipe</button>
+                    <button class="print-button" onclick="printRecipe()">🖨️ Print Recipe</button>
+                    <button class="close-button" onclick="closeView()">✕ Close</button>
+                </div>
+            </div>
         </section>
     </main>
     <footer>
@@ -80,48 +92,65 @@
             <a href="#">Privacy Policy</a> | <a href="#">Terms of Service</a>
         </div>
     </footer>
-    <div id="login-modal" class="modal" style="display:none;">
-        <div class="modal-content">
-            <span class="close" onclick="closeModal('login-modal')">&times;</span>
-            <h2>Login</h2>
-            <form id="login-form">
-                <label for="login-email">Email:</label>
-                <input type="email" id="login-email" required>
-                <label for="login-password">Password:</label>
-                <input type="password" id="login-password" required>
-                <button type="submit">Login</button>
-            </form>
-        </div>
+  <div class="modal" id="login-modal">
+    <div class="modal-panel">
+      <div class="modal-close" onclick="closeModal('login-modal')">&times;</div>
+      <div class="modal-header">
+        <h3>Login</h3>
+        <p>Sign in with your email.</p>
+      </div>
+      <form id="login-form" class="form-card">
+        <label>Email</label>
+        <input type="email" id="login-email" required placeholder="name@example.com">
+        <label>Password</label>
+        <input type="password" id="login-password" required placeholder="Your password">
+        <button class="button-primary" type="submit">Sign in</button>
+      </form>
+      <div id="login-providers"></div>
     </div>
-    <div id="register-modal" class="modal" style="display:none;">
-        <div class="modal-content">
-            <span class="close" onclick="closeModal('register-modal')">&times;</span>
-            <h2>Register</h2>
-            <form id="register-form">
-                <label for="reg-email">Email:</label>
-                <input type="email" id="reg-email" required>
-                <label for="reg-password">Password:</label>
-                <input type="password" id="reg-password" required>
-                <label for="reg-password-confirm">Confirm Password:</label>
-                <input type="password" id="reg-password-confirm" required>
-                <button type="submit">Register</button>
-            </form>
-        </div>
+  </div>
+
+  <div class="modal" id="register-modal">
+    <div class="modal-panel">
+      <div class="modal-close" onclick="closeModal('register-modal')">&times;</div>
+      <div class="modal-header">
+        <h3>Register</h3>
+        <p>Create your account.</p>
+      </div>
+      <form id="register-form" class="form-card">
+        <label>Full name</label>
+        <input type="text" id="reg-name" required placeholder="Your name">
+        <label>Email</label>
+        <input type="email" id="reg-email" required placeholder="name@example.com">
+        <label>Password</label>
+        <input type="password" id="reg-password" required placeholder="Create password">
+        <label>Confirm password</label>
+        <input type="password" id="reg-password-confirm" required placeholder="Confirm password">
+        <button class="button-primary" type="submit">Register</button>
+      </form>
+      <div id="register-providers"></div>
     </div>
-    <div id="rate-modal" class="modal" style="display:none;">
-        <div class="modal-content">
-            <span class="close" onclick="closeModal('rate-modal')">&times;</span>
-            <h2>Rate Recipe</h2>
-            <select id="rating-select">
-                <option value="1">1 Star</option>
-                <option value="2">2 Stars</option>
-                <option value="3">3 Stars</option>
-                <option value="4">4 Stars</option>
-                <option value="5">5 Stars</option>
-            </select>
-            <button onclick="submitRating()">Submit</button>
-        </div>
+  </div>
+  <div class="modal" id="rate-modal">
+    <div class="modal-panel">
+      <div class="modal-close" onclick="closeModal('rate-modal')">&times;</div>
+      <div class="modal-header">
+        <h3>Rate this recipe</h3>
+      </div>
+      <form class="form-card" onsubmit="submitRating(event)">
+        <label>Your rating</label>
+        <select id="rating-select" required>
+          <option value="">Choose a rating</option>
+          <option value="5">⭐⭐⭐⭐⭐ Excellent</option>
+          <option value="4">⭐⭐⭐⭐ Very Good</option>
+          <option value="3">⭐⭐⭐ Good</option>
+          <option value="2">⭐⭐ Fair</option>
+          <option value="1">⭐ Poor</option>
+        </select>
+        <button class="button-primary" type="submit">Submit Rating</button>
+      </form>
     </div>
+  </div>
     <script src="script.js"></script>
 </body>
 </html>

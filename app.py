@@ -41,6 +41,7 @@ def register():
     users = load_data('users.json')
     email = data.get('email', '').strip()
     password = data.get('password', '').strip()
+    username = data.get('username', email.split('@')[0]).strip()  # Default username to email prefix
     
     if not email or not password:
         return jsonify({'success': False, 'message': 'Email and password are required'}), 400
@@ -51,8 +52,10 @@ def register():
     user = {
         'id': str(uuid.uuid4()),
         'email': email,
+        'username': username,
         'password': hash_password(password),
-        'created_at': datetime.now().isoformat()
+        'created_at': datetime.now().isoformat(),
+        'favorites': []
     }
     users.append(user)
     save_data('users.json', users)
@@ -140,6 +143,16 @@ def comment_recipe(recipe_id):
     recipe['comments'].append(comment)
     save_data('recipes.json', recipes)
     return jsonify({'success': True, 'message': 'Comment added', 'comment': comment})
+
+@app.route('/api/recipes/<recipe_id>', methods=['DELETE'])
+def delete_recipe(recipe_id):
+    recipes = load_data('recipes.json')
+    recipe = next((r for r in recipes if r['id'] == recipe_id), None)
+    if not recipe:
+        return jsonify({'success': False, 'message': 'Recipe not found'}), 404
+    recipes.remove(recipe)
+    save_data('recipes.json', recipes)
+    return jsonify({'success': True, 'message': 'Recipe deleted'})
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)

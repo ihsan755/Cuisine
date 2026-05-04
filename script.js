@@ -1,12 +1,293 @@
-// script.js
-
-// Global variables
+// Main app script for Cuisine
+const apiBase = '/api';
 let currentUser = null;
+let recipes = [];
+let currentRecipe = null;
 let currentPage = 1;
-let recipesPerPage = 10;
-let filteredRecipes = [];
-let allRecipes = [];
-let currentRecipeIndex = -1;
+const recipesPerPage = 12;
+
+function query(selector) {
+  return document.querySelector(selector);
+}
+
+function queryAll(selector) {
+  return Array.from(document.querySelectorAll(selector));
+}
+
+function openModal(modalId) {
+  const modal = query(`#${modalId}`);
+  if (modal) modal.classList.add('open');
+}
+
+function closeModal(modalId) {
+  const modal = query(`#${modalId}`);
+  if (modal) modal.classList.remove('open');
+}
+
+function toast(message, type = 'success') {
+  const existing = query('.notification');
+  if (existing) existing.remove();
+  const note = document.createElement('div');
+  note.className = `notification ${type}`;
+  note.innerHTML = `<strong>${type === 'error' ? 'Error' : 'Success'}</strong><span>${message}</span>`;
+  document.body.appendChild(note);
+  setTimeout(() => note.remove(), 3800);
+}
+
+function validateEmail(email) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+function loadUser() {
+  const saved = localStorage.getItem('cuisineUser');
+  if (saved) {
+    try {
+      currentUser = JSON.parse(saved);
+    } catch (e) {
+      currentUser = null;
+    }
+  }
+  updateAuthUI();
+}
+
+function saveUser() {
+  if (currentUser) {
+    localStorage.setItem('cuisineUser', JSON.stringify(currentUser));
+  } else {
+    localStorage.removeItem('cuisineUser');
+  }
+}
+
+function updateAuthUI() {
+  const loginBtn = query('#login-btn');
+  const registerBtn = query('#register-btn');
+  const logoutBtn = query('#logout-btn');
+  if (currentUser) {
+    if (loginBtn) loginBtn.style.display = 'none';
+    if (registerBtn) registerBtn.style.display = 'none';
+    if (logoutBtn) logoutBtn.style.display = '';
+  } else {
+    if (loginBtn) loginBtn.style.display = '';
+    if (registerBtn) loginBtn.style.display = '';
+    if (logoutBtn) logoutBtn.style.display = 'none';
+  }
+}
+
+function handleLogin(event) {
+  event.preventDefault();
+  const email = query('#login-email')?.value.trim();
+  const password = query('#login-password')?.value || '';
+  if (!validateEmail(email)) {
+    toast('Enter a valid email address.', 'error');
+    return;
+  }
+  if (password.length < 6) {
+    toast('Password must be at least 6 characters.', 'error');
+    return;
+  }
+  fetch(`${apiBase}/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password })
+  })
+    .then(r => r.json())
+    .then(data => {
+      if (data.success) {
+        currentUser = data.user;
+        saveUser();
+        updateAuthUI();
+        closeModal('login-modal');
+        toast('Logged in successfully.');
+      } else {
+        toast(data.message || 'Login failed.', 'error');
+      }
+    })
+    .catch(() => toast('Login failed. Please try again later.', 'error'));
+}
+
+function handleRegister(event) {
+  event.preventDefault();
+  const name = query('#reg-name')?.value.trim();
+  const email = query('#reg-email')?.value.trim();
+  const password = query('#reg-password')?.value || '';
+  const confirm = query('#reg-password-confirm')?.value || '';
+  if (!name) {
+    toast('Enter your full name.', 'error');
+    return;
+  }
+  if (!validateEmail(email)) {
+    toast('Enter a valid email address.', 'error');
+    return;
+  }
+  if (password.length < 6) {
+    toast('Password must be at least 6 characters.', 'error');
+    return;
+  }
+  if (password !== confirm) {
+    toast('Passwords do not match.', 'error');
+    return;
+  }
+  fetch(`${apiBase}/register`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username: name, email, password })
+  })
+    .then(r => r.json())
+    .then(data => {
+      if (data.success) {
+        currentUser = data.user;
+        saveUser();
+        updateAuthUI();
+        closeModal('register-modal');
+        toast('Registered successfully.');
+      } else {
+        toast(data.message || 'Registration failed.', 'error');
+      }
+    })
+    .catch(() => toast('Registration failed. Please try later.', 'error'));
+}
+
+function logout() {
+  currentUser = null;
+  saveUser();
+  updateAuthUI();
+  toast('You have been logged out.');
+}
+
+function fetchRecipes() {
+  return fetch(`${apiBase}/recipes`)
+    .then(res => res.json())
+    .then(data => {
+      recipes = Array.isArray(data.recipes) ? data.recipes : [];
+      return recipes;
+    })
+    .catch(err => {
+      console.error('Recipe fetch error:', err);
+      return [];
+    });
+}
+
+function searchAndFilter() {
+  const cuisine = query('#cuisine-filter')?.value || '';
+  const diet = query('#diet-filter')?.value || '';
+  const keyword = query('#search')?.value.trim().toLowerCase() || '';
+  let result = recipes.slice();
+  if (cuisine) {
+    result = result.filter(recipe => recipe.cuisine?.toLowerCase() === cuisine.toLowerCase());
+  }
+  if (diet) {
+    result = result.filter(recipe => (recipe.tags || []).some(tag => tag.toLowerCase().includes(diet.toLowerCase())));
+  }
+  if (keyword) {
+    result = result.filter(recipe => {
+      return [recipe.title, recipe.description, recipe.cuisine, ...(recipe.tags || [])].some(val => val && val.toLowerCase().includes(keyword));
+    });
+  }
+  currentPage = 1;
+  renderRecipeGrid(result);
+}
+
+function renderRecipeGrid(recipeList) {
+  const container = query('#recipe-list');
+  if (!container) return;
+  container.innerHTML = '';
+  if (!recipeList.length) {
+    container.innerHTML = '<p>No recipes found.</p>';
+    return;
+  }
+  const start = (currentPage - 1) * recipesPerPage;
+  const pageRecipes = recipeList.slice(start, start + recipesPerPage);
+  pageRecipes.forEach(recipe => {
+    const card = document.createElement('article');
+    card.className = 'recipe-card';
+    card.innerHTML = `
+      <img src="${recipe.image || 'https://images.unsplash.com/photo-1495521821757-a1efb6729352?auto=format&fit=crop&w=600&q=80'}" alt="${recipe.title}">
+      <div>
+        <div class="recipe-meta">
+          <span>${recipe.cuisine}</span>
+          <span>${(recipe.rating || 4).toFixed(1)} ⭐</span>
+        </div>
+        <h3>${recipe.title}</h3>
+        <p>${recipe.description || 'A delicious recipe.'}</p>
+        <div class="chip">${(recipe.tags || []).slice(0, 3).map(t => `<span>${t}</span>`).join('')}</div>
+        <div class="card-footer">
+          <span class="tag">${recipe.servings || 4} servings</span>
+          <button class="button-primary view-button" onclick="openRecipe('${recipe.id}')">View</button>
+        </div>
+      </div>
+    `;
+    container.appendChild(card);
+  });
+  const pageCount = Math.ceil(recipeList.length / recipesPerPage);
+  query('#page-info').textContent = `Page ${currentPage} of ${pageCount}`;
+  query('#prev-btn')?.toggleAttribute('disabled', currentPage <= 1);
+  query('#next-btn')?.toggleAttribute('disabled', currentPage >= pageCount);
+}
+
+function openRecipe(recipeId) {
+  const recipe = recipes.find(r => r.id === recipeId);
+  if (!recipe) return;
+  currentRecipe = recipe;
+  query('#view-title').textContent = recipe.title;
+  query('#view-cuisine').textContent = recipe.cuisine || 'Global';
+  query('#view-author').textContent = recipe.author || 'Chef';
+  query('#view-rating').textContent = (recipe.rating || 4).toFixed(1);
+  query('#view-prep-time').textContent = recipe.prepTime || 15;
+  query('#view-cook-time').textContent = recipe.cookTime || 30;
+  query('#view-servings').textContent = recipe.servings || 4;
+  query('#view-description').textContent = recipe.description || '';
+  query('#view-ingredients').innerHTML = '<h3>Ingredients</h3><ul>' + (recipe.ingredients || []).map(i => `<li>${i}</li>`).join('') + '</ul>';
+  query('#view-steps').innerHTML = '<h3>Instructions</h3><ol>' + (recipe.steps || []).map(s => `<li>${s.text || s}</li>`).join('') + '</ol>';
+  query('#like-count').textContent = recipe.likes || 0;
+  query('#recipe-view').style.display = 'block';
+  query('#recipe-view').scrollIntoView({ behavior: 'smooth' });
+}
+
+function closeView() {
+  query('#recipe-view').style.display = 'none';
+}
+
+function prevPage() {
+  if (currentPage > 1) {
+    currentPage -= 1;
+    searchAndFilter();
+  }
+}
+
+function nextPage() {
+  currentPage += 1;
+  searchAndFilter();
+}
+
+function setupPage() {
+  loadUser();
+  query('#login-btn')?.addEventListener('click', () => openModal('login-modal'));
+  query('#register-btn')?.addEventListener('click', () => openModal('register-modal'));
+  query('#logout-btn')?.addEventListener('click', logout);
+  query('#login-form')?.addEventListener('submit', handleLogin);
+  query('#register-form')?.addEventListener('submit', handleRegister);
+  query('#prev-btn')?.addEventListener('click', prevPage);
+  query('#next-btn')?.addEventListener('click', nextPage);
+  query('#search')?.addEventListener('input', searchAndFilter);
+  query('#cuisine-filter')?.addEventListener('change', searchAndFilter);
+  query('#diet-filter')?.addEventListener('change', searchAndFilter);
+  
+  // Close modal when clicking outside
+  queryAll('.modal').forEach(modal => {
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        modal.classList.remove('open');
+      }
+    });
+  });
+
+  const page = window.location.pathname.split('/').pop() || 'index.html';
+  if (page === 'index.html' || page === '') {
+    fetchRecipes().then(() => searchAndFilter());
+  }
+}
+
+window.addEventListener('DOMContentLoaded', setupPage);
 
 // Utility functions
 function $(selector) {
@@ -18,15 +299,18 @@ function $$(selector) {
 }
 
 function showElement(selector) {
-    $(selector).style.display = 'block';
+    const el = $(selector);
+    if (el) el.style.display = 'block';
 }
 
 function hideElement(selector) {
-    $(selector).style.display = 'none';
+    const el = $(selector);
+    if (el) el.style.display = 'none';
 }
 
 function toggleElement(selector) {
     const el = $(selector);
+    if (!el) return;
     el.style.display = el.style.display === 'none' ? 'block' : 'none';
 }
 
@@ -1070,7 +1354,7 @@ function POSITIVE_INFINITY() {
     return Number.POSITIVE_INFINITY;
 }
 
-function NaN() {
+function getNaN() {
     return Number.NaN;
 }
 
@@ -1437,222 +1721,6 @@ function getTotalPages(recipes, perPage) {
     return Math.ceil(recipes.length / perPage);
 }
 
-function loadSampleRecipes() {
-    const sampleRecipes = [
-        {
-            title: 'Spaghetti Carbonara',
-            description: 'Classic Italian pasta dish',
-            cuisine: 'Italian',
-            ingredients: ['Spaghetti', 'Eggs', 'Pancetta', 'Parmesan', 'Black pepper'],
-            prepTime: 10,
-            cookTime: 20,
-            servings: 4,
-            tags: ['pasta', 'italian', 'quick'],
-            steps: [
-                { text: 'Cook spaghetti according to package instructions.', media: null },
-                { text: 'Fry pancetta until crispy.', media: null },
-                { text: 'Mix eggs and cheese.', media: null },
-                { text: 'Combine everything.', media: null }
-            ],
-            author: 'Chef Mario',
-            date: '2023-01-01',
-            rating: 4.5,
-            likes: 10,
-            comments: []
-        },
-        {
-            title: 'Chicken Tikka Masala',
-            description: 'Spicy Indian curry',
-            cuisine: 'Indian',
-            ingredients: ['Chicken', 'Yogurt', 'Spices', 'Tomatoes', 'Cream'],
-            prepTime: 30,
-            cookTime: 40,
-            servings: 6,
-            tags: ['curry', 'indian', 'spicy'],
-            steps: [
-                { text: 'Marinate chicken in yogurt and spices.', media: null },
-                { text: 'Grill chicken.', media: null },
-                { text: 'Make sauce with tomatoes and cream.', media: null },
-                { text: 'Combine and simmer.', media: null }
-            ],
-            author: 'Chef Raj',
-            date: '2023-02-01',
-            rating: 4.8,
-            likes: 15,
-            comments: []
-        },
-        {
-            title: 'Sushi Rolls',
-            description: 'Fresh Japanese sushi',
-            cuisine: 'Japanese',
-            ingredients: ['Rice', 'Nori', 'Fish', 'Vegetables', 'Soy sauce'],
-            prepTime: 45,
-            cookTime: 30,
-            servings: 4,
-            tags: ['sushi', 'japanese', 'seafood'],
-            steps: [
-                { text: 'Cook sushi rice.', media: null },
-                { text: 'Prepare fillings.', media: null },
-                { text: 'Roll sushi.', media: null },
-                { text: 'Slice and serve.', media: null }
-            ],
-            author: 'Chef Tanaka',
-            date: '2023-03-01',
-            rating: 4.7,
-            likes: 20,
-            comments: []
-        },
-        {
-            title: 'Pad Thai',
-            description: 'Thai stir-fried noodles',
-            cuisine: 'Thai',
-            ingredients: ['Rice noodles', 'Shrimp', 'Tofu', 'Peanuts', 'Lime'],
-            prepTime: 20,
-            cookTime: 15,
-            servings: 4,
-            tags: ['noodles', 'thai', 'spicy'],
-            steps: [
-                { text: 'Soak noodles.', media: null },
-                { text: 'Stir-fry ingredients.', media: null },
-                { text: 'Add sauce.', media: null },
-                { text: 'Garnish and serve.', media: null }
-            ],
-            author: 'Chef Somsak',
-            date: '2023-04-01',
-            rating: 4.6,
-            likes: 18,
-            comments: []
-        },
-        {
-            title: 'Beef Bourguignon',
-            description: 'French beef stew',
-            cuisine: 'French',
-            ingredients: ['Beef', 'Red wine', 'Onions', 'Carrots', 'Mushrooms'],
-            prepTime: 30,
-            cookTime: 180,
-            servings: 6,
-            tags: ['stew', 'french', 'wine'],
-            steps: [
-                { text: 'Brown beef.', media: null },
-                { text: 'Sauté vegetables.', media: null },
-                { text: 'Add wine and simmer.', media: null },
-                { text: 'Cook slowly.', media: null }
-            ],
-            author: 'Chef Dubois',
-            date: '2023-05-01',
-            rating: 4.9,
-            likes: 25,
-            comments: []
-        },
-        {
-            title: 'Tacos al Pastor',
-            description: 'Mexican pork tacos',
-            cuisine: 'Mexican',
-            ingredients: ['Pork', 'Pineapple', 'Onions', 'Cilantro', 'Tortillas'],
-            prepTime: 60,
-            cookTime: 30,
-            servings: 8,
-            tags: ['tacos', 'mexican', 'pork'],
-            steps: [
-                { text: 'Marinate pork.', media: null },
-                { text: 'Grill pork and pineapple.', media: null },
-                { text: 'Chop and mix.', media: null },
-                { text: 'Serve in tortillas.', media: null }
-            ],
-            author: 'Chef Rodriguez',
-            date: '2023-06-01',
-            rating: 4.4,
-            likes: 12,
-            comments: []
-        },
-        {
-            title: 'Dim Sum',
-            description: 'Chinese steamed dumplings',
-            cuisine: 'Chinese',
-            ingredients: ['Flour', 'Pork', 'Shrimp', 'Vegetables', 'Soy sauce'],
-            prepTime: 40,
-            cookTime: 20,
-            servings: 6,
-            tags: ['dumplings', 'chinese', 'steamed'],
-            steps: [
-                { text: 'Make dough.', media: null },
-                { text: 'Prepare filling.', media: null },
-                { text: 'Wrap dumplings.', media: null },
-                { text: 'Steam and serve.', media: null }
-            ],
-            author: 'Chef Li',
-            date: '2023-07-01',
-            rating: 4.3,
-            likes: 14,
-            comments: []
-        },
-        {
-            title: 'Paella',
-            description: 'Spanish rice dish',
-            cuisine: 'Spanish',
-            ingredients: ['Rice', 'Seafood', 'Chicken', 'Saffron', 'Peas'],
-            prepTime: 25,
-            cookTime: 35,
-            servings: 6,
-            tags: ['rice', 'spanish', 'seafood'],
-            steps: [
-                { text: 'Sauté ingredients.', media: null },
-                { text: 'Add rice and broth.', media: null },
-                { text: 'Simmer.', media: null },
-                { text: 'Rest and serve.', media: null }
-            ],
-            author: 'Chef Garcia',
-            date: '2023-08-01',
-            rating: 4.5,
-            likes: 16,
-            comments: []
-        },
-        {
-            title: 'Falafel',
-            description: 'Middle Eastern chickpea fritters',
-            cuisine: 'Middle Eastern',
-            ingredients: ['Chickpeas', 'Herbs', 'Onions', 'Garlic', 'Tahini'],
-            prepTime: 15,
-            cookTime: 10,
-            servings: 4,
-            tags: ['falafel', 'middle eastern', 'vegetarian'],
-            steps: [
-                { text: 'Blend ingredients.', media: null },
-                { text: 'Form patties.', media: null },
-                { text: 'Fry until golden.', media: null },
-                { text: 'Serve with sauce.', media: null }
-            ],
-            author: 'Chef Ahmed',
-            date: '2023-09-01',
-            rating: 4.2,
-            likes: 11,
-            comments: []
-        },
-        {
-            title: 'Kimchi Jjigae',
-            description: 'Korean kimchi stew',
-            cuisine: 'Korean',
-            ingredients: ['Kimchi', 'Pork', 'Tofu', 'Onions', 'Gochujang'],
-            prepTime: 10,
-            cookTime: 25,
-            servings: 4,
-            tags: ['stew', 'korean', 'spicy'],
-            steps: [
-                { text: 'Sauté pork and kimchi.', media: null },
-                { text: 'Add water and simmer.', media: null },
-                { text: 'Add tofu.', media: null },
-                { text: 'Serve hot.', media: null }
-            ],
-            author: 'Chef Kim',
-            date: '2023-10-01',
-            rating: 4.6,
-            likes: 19,
-            comments: []
-        }
-    ];
-    allRecipes = sampleRecipes;
-    localStorage.setItem('recipes', JSON.stringify(allRecipes));
-}
 
 function loadUserData() {
     const userData = localStorage.getItem('user');
@@ -1691,7 +1759,9 @@ function showRegisterModal() {
 }
 
 function closeModal(modalId) {
-    hideElement(modalId);
+    if (!modalId) return;
+    const selector = modalId.startsWith('#') || modalId.startsWith('.') ? modalId : `#${modalId}`;
+    hideElement(selector);
 }
 
 function login(email, password) {
@@ -1720,13 +1790,13 @@ function login(email, password) {
     });
 }
 
-function register(email, password) {
+function register(email, password, username) {
     fetch('/api/register', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, password, username }),
     })
     .then(response => response.json())
     .then(data => {
@@ -1981,6 +2051,9 @@ function viewRecipe(index) {
     setText('#view-cuisine', recipe.cuisine);
     setText('#view-author', recipe.author || 'Anonymous');
     setText('#view-rating', recipe.rating || 'N/A');
+    setText('#view-prep-time', recipe.prepTime || 'N/A');
+    setText('#view-cook-time', recipe.cookTime || 'N/A');
+    setText('#view-servings', recipe.servings || 'N/A');
     setText('#like-count', recipe.likes || 0);
 
     const ingredientsList = $('#view-ingredients ul') || createElement('ul');
@@ -2166,10 +2239,24 @@ function editRecipe(index) {
 
 function deleteRecipe(index) {
     if (confirm('Are you sure you want to delete this recipe?')) {
-        allRecipes.splice(index, 1);
-        localStorage.setItem('recipes', JSON.stringify(allRecipes));
-        showSuccess('Recipe deleted!');
-        loadProfile();
+        const recipeId = allRecipes[index].id;
+        fetch('/api/recipes/' + recipeId, {
+            method: 'DELETE',
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                allRecipes.splice(index, 1);
+                showSuccess('Recipe deleted!');
+                loadProfile();
+            } else {
+                showError(data.message || 'Failed to delete recipe');
+            }
+        })
+        .catch(error => {
+            console.error('Delete error:', error);
+            showError('Failed to delete recipe');
+        });
     }
 }
 
@@ -2214,7 +2301,6 @@ function loadRecipes() {
 document.addEventListener('DOMContentLoaded', function() {
     const page = window.location.pathname.split('/').pop();
 
-    loadSampleRecipes();
     loadUserData();
     loadRecipes().then(() => {
         if (page === 'index.html' || page === '') {
@@ -2243,9 +2329,14 @@ document.addEventListener('DOMContentLoaded', function() {
         e.preventDefault();
         const email = getValue('#reg-email');
         const password = getValue('#reg-password');
+        const username = getValue('#reg-username');
         const passwordConfirm = getValue('#reg-password-confirm');
         if (!validateEmail(email)) {
             showError('Invalid email');
+            return;
+        }
+        if (!validateUsername(username)) {
+            showError('Username must be at least 3 characters');
             return;
         }
         if (password !== passwordConfirm) {
@@ -2256,6 +2347,6 @@ document.addEventListener('DOMContentLoaded', function() {
             showError('Password must be at least 6 characters');
             return;
         }
-        register(email, password);
+        register(email, password, username);
     });
 });
