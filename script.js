@@ -2,6 +2,8 @@
 const apiBase = '/api';
 let currentUser = null;
 let recipes = [];
+let allRecipes = [];
+let filteredRecipes = [];
 let currentRecipe = null;
 let currentPage = 1;
 const recipesPerPage = 12;
@@ -16,12 +18,18 @@ function queryAll(selector) {
 
 function openModal(modalId) {
   const modal = query(`#${modalId}`);
-  if (modal) modal.classList.add('open');
+  if (modal) {
+    modal.classList.add('open');
+    modal.style.display = 'flex';
+  }
 }
 
 function closeModal(modalId) {
   const modal = query(`#${modalId}`);
-  if (modal) modal.classList.remove('open');
+  if (modal) {
+    modal.classList.remove('open');
+    modal.style.display = 'none';
+  }
 }
 
 function toast(message, type = 'success') {
@@ -34,12 +42,42 @@ function toast(message, type = 'success') {
   setTimeout(() => note.remove(), 3800);
 }
 
+const authUsersKey = 'cuisineUsers';
+const authCurrentUserKey = 'cuisineUser';
+const recipesKey = 'cuisineRecipes';
+
 function validateEmail(email) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
+function getStoredUsers() {
+  const data = localStorage.getItem(authUsersKey);
+  return data ? JSON.parse(data) : [];
+}
+
+function getStoredRecipes() {
+  const data = localStorage.getItem(recipesKey);
+  try {
+    return data ? JSON.parse(data) : [];
+  } catch (e) {
+    return [];
+  }
+}
+
+function saveStoredRecipes(list) {
+  localStorage.setItem(recipesKey, JSON.stringify(list));
+}
+
+function saveStoredUsers(users) {
+  localStorage.setItem(authUsersKey, JSON.stringify(users));
+}
+
+function findUserByEmail(email) {
+  return getStoredUsers().find(user => user.email.toLowerCase() === email.toLowerCase());
+}
+
 function loadUser() {
-  const saved = localStorage.getItem('cuisineUser');
+  const saved = localStorage.getItem(authCurrentUserKey);
   if (saved) {
     try {
       currentUser = JSON.parse(saved);
@@ -52,9 +90,9 @@ function loadUser() {
 
 function saveUser() {
   if (currentUser) {
-    localStorage.setItem('cuisineUser', JSON.stringify(currentUser));
+    localStorage.setItem(authCurrentUserKey, JSON.stringify(currentUser));
   } else {
-    localStorage.removeItem('cuisineUser');
+    localStorage.removeItem(authCurrentUserKey);
   }
 }
 
@@ -62,14 +100,17 @@ function updateAuthUI() {
   const loginBtn = query('#login-btn');
   const registerBtn = query('#register-btn');
   const logoutBtn = query('#logout-btn');
+  const greeting = query('#user-greeting');
   if (currentUser) {
     if (loginBtn) loginBtn.style.display = 'none';
     if (registerBtn) registerBtn.style.display = 'none';
     if (logoutBtn) logoutBtn.style.display = '';
+    if (greeting) greeting.textContent = `Hello, ${currentUser.username}!`;
   } else {
     if (loginBtn) loginBtn.style.display = '';
-    if (registerBtn) loginBtn.style.display = '';
+    if (registerBtn) registerBtn.style.display = '';
     if (logoutBtn) logoutBtn.style.display = 'none';
+    if (greeting) greeting.textContent = '';
   }
 }
 
@@ -85,32 +126,25 @@ function handleLogin(event) {
     toast('Password must be at least 6 characters.', 'error');
     return;
   }
-  fetch(`${apiBase}/login`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password })
-  })
-    .then(r => r.json())
-    .then(data => {
-      if (data.success) {
-        currentUser = data.user;
-        saveUser();
-        updateAuthUI();
-        closeModal('login-modal');
-        toast('Logged in successfully.');
-      } else {
-        toast(data.message || 'Login failed.', 'error');
-      }
-    })
-    .catch(() => toast('Login failed. Please try again later.', 'error'));
+  const user = findUserByEmail(email);
+  if (!user || user.password !== password) {
+    toast('Login failed. Check your email and password.', 'error');
+    return;
+  }
+  currentUser = { username: user.username, email: user.email };
+  saveUser();
+  updateAuthUI();
+  closeModal('login-modal');
+  toast('Logged in successfully.');
 }
 
 function handleRegister(event) {
   event.preventDefault();
-  const name = query('#reg-name')?.value.trim();
+  const name = (query('#reg-name') || query('#reg-username'))?.value.trim();
   const email = query('#reg-email')?.value.trim();
   const password = query('#reg-password')?.value || '';
-  const confirm = query('#reg-password-confirm')?.value || '';
+  const confirmInput = query('#reg-password-confirm');
+  const confirm = confirmInput ? confirmInput.value || '' : password;
   if (!name) {
     toast('Enter your full name.', 'error');
     return;
@@ -123,28 +157,22 @@ function handleRegister(event) {
     toast('Password must be at least 6 characters.', 'error');
     return;
   }
-  if (password !== confirm) {
+  if (confirmInput && password !== confirm) {
     toast('Passwords do not match.', 'error');
     return;
   }
-  fetch(`${apiBase}/register`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username: name, email, password })
-  })
-    .then(r => r.json())
-    .then(data => {
-      if (data.success) {
-        currentUser = data.user;
-        saveUser();
-        updateAuthUI();
-        closeModal('register-modal');
-        toast('Registered successfully.');
-      } else {
-        toast(data.message || 'Registration failed.', 'error');
-      }
-    })
-    .catch(() => toast('Registration failed. Please try later.', 'error'));
+  if (findUserByEmail(email)) {
+    toast('An account with that email already exists.', 'error');
+    return;
+  }
+  const users = getStoredUsers();
+  users.push({ username: name, email, password });
+  saveStoredUsers(users);
+  currentUser = { username: name, email };
+  saveUser();
+  updateAuthUI();
+  closeModal('register-modal');
+  toast('Registered successfully.');
 }
 
 function logout() {
@@ -155,15 +183,23 @@ function logout() {
 }
 
 function fetchRecipes() {
-  return fetch(`${apiBase}/recipes`)
+  const stored = getStoredRecipes();
+  if (stored && stored.length) {
+    recipes = stored;
+    return Promise.resolve(recipes);
+  }
+  return fetch('data/recipes.json')
     .then(res => res.json())
     .then(data => {
-      recipes = Array.isArray(data.recipes) ? data.recipes : [];
+      recipes = Array.isArray(data) ? data : (Array.isArray(data.recipes) ? data.recipes : []);
+      recipes = recipes.map((recipe, index) => ({ ...recipe, id: recipe.id || `recipe_${index}` }));
+      saveStoredRecipes(recipes);
       return recipes;
     })
     .catch(err => {
       console.error('Recipe fetch error:', err);
-      return [];
+      recipes = [];
+      return recipes;
     });
 }
 
@@ -276,7 +312,7 @@ function setupPage() {
   queryAll('.modal').forEach(modal => {
     modal.addEventListener('click', (e) => {
       if (e.target === modal) {
-        modal.classList.remove('open');
+        closeModal(modal.id);
       }
     });
   });
@@ -286,8 +322,6 @@ function setupPage() {
     fetchRecipes().then(() => searchAndFilter());
   }
 }
-
-window.addEventListener('DOMContentLoaded', setupPage);
 
 // Utility functions
 function $(selector) {
@@ -300,12 +334,18 @@ function $$(selector) {
 
 function showElement(selector) {
     const el = $(selector);
-    if (el) el.style.display = 'block';
+    if (!el) return;
+    if (el.classList.contains('modal')) {
+        el.style.display = 'flex';
+    } else {
+        el.style.display = 'block';
+    }
 }
 
 function hideElement(selector) {
     const el = $(selector);
-    if (el) el.style.display = 'none';
+    if (!el) return;
+    el.style.display = 'none';
 }
 
 function toggleElement(selector) {
@@ -346,20 +386,24 @@ function getHTML(selector) {
     return $(selector).innerHTML;
 }
 
-function setValue(selector, value) {
-    $(selector).value = value;
+function getValue(selector) {
+    const el = $(selector);
+    return el ? el.value : '';
 }
 
-function getValue(selector) {
-    return $(selector).value;
+function setValue(selector, value) {
+    const el = $(selector);
+    if (el) el.value = value;
 }
 
 function addEvent(selector, event, handler) {
-    $(selector).addEventListener(event, handler);
+    const el = $(selector);
+    if (el) el.addEventListener(event, handler);
 }
 
 function removeEvent(selector, event, handler) {
-    $(selector).removeEventListener(event, handler);
+    const el = $(selector);
+    if (el) el.removeEventListener(event, handler);
 }
 
 function createElement(tag, attributes = {}, text = '') {
@@ -1302,23 +1346,8 @@ function toString(n, radix) {
     return n.toString(radix);
 }
 
-function parseInt(str, radix) {
-    return window.parseInt(str, radix);
-}
+// Native parsing functions (removed custom wrappers to avoid conflicts)
 
-function parseFloat(str) {
-    return window.parseFloat(str);
-}
-
-function isNaN(n) {
-    return window.isNaN(n);
-}
-
-function isFinite(n) {
-    return window.isFinite(n);
-}
-
-function isInteger(n) {
     return Number.isInteger(n);
 }
 
@@ -1723,7 +1752,7 @@ function getTotalPages(recipes, perPage) {
 
 
 function loadUserData() {
-    const userData = localStorage.getItem('user');
+    const userData = localStorage.getItem(authCurrentUserKey);
     if (userData) {
         currentUser = JSON.parse(userData);
         updateUserUI();
@@ -1732,7 +1761,7 @@ function loadUserData() {
 
 function saveUserData() {
     if (currentUser) {
-        localStorage.setItem('user', JSON.stringify(currentUser));
+        localStorage.setItem(authCurrentUserKey, JSON.stringify(currentUser));
     }
 }
 
@@ -1818,9 +1847,9 @@ function register(email, password, username) {
 
 function logout() {
     currentUser = null;
-    localStorage.removeItem('user');
-    updateUserUI();
-    showSuccess('Logged out successfully!');
+    localStorage.removeItem(authCurrentUserKey);
+    updateAuthUI();
+    toast('You have been logged out.');
 }
 
 function rateRecipe() {
@@ -2102,47 +2131,90 @@ function closeView() {
 }
 
 function setupUploadForm() {
-    const addStepBtn = $('#add-step');
     const stepsContainer = $('#steps-container');
-    const form = $('#upload-form');
-
-    addEvent('#add-step', 'click', function() {
+    
+    addEvent('#add-step', 'click', function(e) {
+        e.preventDefault();
         const stepDiv = createElement('div', { class: 'step' });
-        setHTML(stepDiv, `
-            <textarea placeholder="Step ${stepsContainer.children.length + 1} description" required></textarea>
-            <input type="file" accept="image/*,video/*">
-        `);
-        appendChild(stepsContainer, stepDiv);
+        const stepNum = stepsContainer.children.length + 1;
+        const textarea = document.createElement('textarea');
+        textarea.placeholder = `Step ${stepNum} description`;
+        textarea.required = true;
+        
+        const fileInput = document.createElement('input');
+        fileInput.type = 'file';
+        fileInput.accept = 'image/*,video/*';
+        
+        stepDiv.appendChild(textarea);
+        stepDiv.appendChild(fileInput);
+        stepsContainer.appendChild(stepDiv);
     });
 
     addEvent('#upload-form', 'submit', async function(e) {
         e.preventDefault();
+        
         if (!currentUser) {
-            showError('Please login to upload recipes');
+            toast('Please login to upload recipes', 'error');
             return;
         }
+        
         const title = getValue('#title');
         const description = getValue('#description');
         const cuisine = getValue('#cuisine');
+        
+        if (!title || !description || !cuisine) {
+            toast('Please fill in all required fields', 'error');
+            return;
+        }
+        
         const ingredients = getValue('#ingredients').split('\n').filter(i => i.trim() !== '');
+        if (ingredients.length === 0) {
+            toast('Please add at least one ingredient', 'error');
+            return;
+        }
+        
         const prepTime = parseInt(getValue('#prep-time'));
         const cookTime = parseInt(getValue('#cook-time'));
         const servings = parseInt(getValue('#servings'));
+        
+        if (!prepTime || !cookTime || !servings) {
+            toast('Please fill in cooking times and servings', 'error');
+            return;
+        }
+        
         const tags = getValue('#tags').split(',').map(t => t.trim()).filter(t => t !== '');
 
         const steps = [];
-        const stepElements = $$('.step');
+        const stepElements = $$('#steps-container .step');
+        
+        if (stepElements.length === 0) {
+            toast('Please add at least one step', 'error');
+            return;
+        }
+        
         for (let stepEl of stepElements) {
-            const text = stepEl.querySelector('textarea').value;
+            const textarea = stepEl.querySelector('textarea');
+            const text = textarea ? textarea.value.trim() : '';
+            
+            if (!text) {
+                toast('Please fill in all step descriptions', 'error');
+                return;
+            }
+            
             const fileInput = stepEl.querySelector('input[type="file"]');
             let media = null;
-            if (fileInput.files[0]) {
-                media = await fileToDataURL(fileInput.files[0]);
+            if (fileInput && fileInput.files[0]) {
+                try {
+                    media = await fileToDataURL(fileInput.files[0]);
+                } catch (err) {
+                    console.error('Error converting file:', err);
+                }
             }
             steps.push({ text, media });
         }
 
         const recipe = {
+            id: Date.now().toString(36) + Math.random().toString(36).slice(2, 8),
             title,
             description,
             cuisine,
@@ -2159,26 +2231,18 @@ function setupUploadForm() {
             comments: []
         };
 
-        fetch('/api/recipes', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(recipe),
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                showSuccess('Recipe uploaded!');
+        try {
+            const storedRecipes = getStoredRecipes();
+            storedRecipes.push(recipe);
+            saveStoredRecipes(storedRecipes);
+            toast('Recipe uploaded successfully!', 'success');
+            setTimeout(() => {
                 window.location.href = 'index.html';
-            } else {
-                showError(data.message || 'Failed to upload recipe');
-            }
-        })
-        .catch(error => {
-            console.error('Upload error:', error);
-            showError('Failed to upload recipe');
-        });
+            }, 1000);
+        } catch (err) {
+            console.error('Error saving recipe:', err);
+            toast('Failed to save recipe. Please try again.', 'error');
+        }
     });
 }
 
@@ -2277,17 +2341,19 @@ function setupContactForm() {
 }
 
 function loadRecipes() {
-    return fetch('/api/recipes')
+    const stored = getStoredRecipes();
+    if (stored && stored.length) {
+        allRecipes = stored;
+        filteredRecipes = allRecipes;
+        return Promise.resolve(allRecipes);
+    }
+    return fetch('data/recipes.json')
         .then(response => response.json())
         .then(data => {
-            allRecipes = data.recipes || [];
+            const list = Array.isArray(data) ? data : (data.recipes || []);
+            allRecipes = list.map((recipe, index) => ({ ...recipe, id: recipe.id || `recipe_${index}` }));
             filteredRecipes = allRecipes;
-            // Add IDs to recipes if they don't have them (for backward compatibility)
-            allRecipes.forEach((recipe, index) => {
-                if (!recipe.id) {
-                    recipe.id = 'legacy_' + index;
-                }
-            });
+            saveStoredRecipes(allRecipes);
             return allRecipes;
         })
         .catch(error => {
@@ -2299,7 +2365,8 @@ function loadRecipes() {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-    const page = window.location.pathname.split('/').pop();
+    const pathname = window.location.pathname;
+    const page = pathname.split('/').pop() || 'index.html';
 
     loadUserData();
     loadRecipes().then(() => {
@@ -2319,34 +2386,12 @@ document.addEventListener('DOMContentLoaded', function() {
     // Setup login form
     addEvent('#login-form', 'submit', function(e) {
         e.preventDefault();
-        const email = getValue('#login-email');
-        const password = getValue('#login-password');
-        login(email, password);
+        handleLogin(e);
     });
 
     // Setup register form
     addEvent('#register-form', 'submit', function(e) {
         e.preventDefault();
-        const email = getValue('#reg-email');
-        const password = getValue('#reg-password');
-        const username = getValue('#reg-username');
-        const passwordConfirm = getValue('#reg-password-confirm');
-        if (!validateEmail(email)) {
-            showError('Invalid email');
-            return;
-        }
-        if (!validateUsername(username)) {
-            showError('Username must be at least 3 characters');
-            return;
-        }
-        if (password !== passwordConfirm) {
-            showError('Passwords do not match');
-            return;
-        }
-        if (!validatePassword(password)) {
-            showError('Password must be at least 6 characters');
-            return;
-        }
-        register(email, password, username);
+        handleRegister(e);
     });
 });
