@@ -37,10 +37,34 @@
                 <option value="French">French</option>
                 <option value="Japanese">Japanese</option>
                 <option value="Thai">Thai</option>
+                <option value="Spanish">Spanish</option>
                 <option value="Other">Other</option>
             </select>
+            <label for="sort-by">Sort by:</label>
+            <select id="sort-by">
+                <option value="popular">Most Popular</option>
+                <option value="rating">Top Rated</option>
+                <option value="newest">Newest</option>
+            </select>
+            <label for="difficulty-filter">Difficulty:</label>
+            <select id="difficulty-filter">
+                <option value="">Any</option>
+                <option value="Easy">Easy</option>
+                <option value="Medium">Medium</option>
+                <option value="Hard">Hard</option>
+            </select>
+            <label for="max-time-filter">Max Total Time (mins):</label>
+            <input type="number" id="max-time-filter" min="0" placeholder="Any">
+            <fieldset class="dietary-filters" style="border:none; padding:0; margin:0;">
+                <legend>Dietary:</legend>
+                <label><input type="checkbox" id="diet-vegan" value="Vegan"> Vegan</label>
+                <label><input type="checkbox" id="diet-gluten-free" value="Gluten-Free"> Gluten-Free</label>
+                <label><input type="checkbox" id="diet-low-carb" value="Low-Carb"> Low-Carb</label>
+                <label><input type="checkbox" id="diet-vegetarian" value="Vegetarian"> Vegetarian</label>
+                <label><input type="checkbox" id="diet-dairy-free" value="Dairy-Free"> Dairy-Free</label>
+            </fieldset>
             <label for="search">Search:</label>
-            <input type="text" id="search" placeholder="Search recipes...">
+            <input type="text" id="search" placeholder="Search recipes or ingredients...">
             <button onclick="applyFilters()">Apply Filters</button>
             <button onclick="clearFilters()">Clear</button>
         </aside>
@@ -61,6 +85,8 @@
                 <p><strong>Cuisine:</strong> <span id="view-cuisine"></span></p>
                 <p><strong>Author:</strong> <span id="view-author"></span></p>
                 <p><strong>Rating:</strong> <span id="view-rating"></span> ⭐</p>
+                <p><strong>Difficulty:</strong> <span id="view-difficulty"></span></p>
+                <p><strong>Dietary:</strong> <span id="view-dietary"></span></p>
                 <p><strong>Prep Time:</strong> <span id="view-prep-time"></span> mins</p>
                 <p><strong>Cook Time:</strong> <span id="view-cook-time"></span> mins</p>
                 <p><strong>Servings:</strong> <span id="view-servings"></span></p>
@@ -79,6 +105,7 @@
                 <div class="action-buttons">
                     <button onclick="addComment()">Post Comment</button>
                     <button class="like-button" onclick="likeRecipe()">👍 Like (<span id="like-count">0</span>)</button>
+                    <button class="button-secondary" id="favorite-button" onclick="toggleFavorite()">🤍 Favorite</button>
                     <button class="rate-button" onclick="rateRecipe()">⭐ Rate Recipe</button>
                     <button class="print-button" onclick="printRecipe()">🖨️ Print Recipe</button>
                     <button class="close-button" onclick="closeView()">✕ Close</button>

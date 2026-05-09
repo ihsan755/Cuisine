@@ -41,6 +41,10 @@
                         <textarea id="description" placeholder="Describe your recipe..." required></textarea>
                     </div>
                     <div>
+                        <label for="image-url">Featured Image URL</label>
+                        <input type="url" id="image-url" placeholder="https://example.com/photo.jpg">
+                    </div>
+                    <div>
                         <label for="cuisine">Cuisine</label>
                         <select id="cuisine" required>
                             <option value="">Select Cuisine</option>
@@ -61,6 +65,25 @@
                             <option value="Brazilian">Brazilian</option>
                             <option value="Other">Other</option>
                         </select>
+                    </div>
+                    <div>
+                        <label for="difficulty">Difficulty</label>
+                        <select id="difficulty" required>
+                            <option value="">Select Difficulty</option>
+                            <option value="Easy">Easy</option>
+                            <option value="Medium">Medium</option>
+                            <option value="Hard">Hard</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label>Dietary restrictions</label>
+                        <div class="dietary-grid">
+                            <label><input type="checkbox" name="dietary" value="Vegan"> Vegan</label>
+                            <label><input type="checkbox" name="dietary" value="Gluten-Free"> Gluten-Free</label>
+                            <label><input type="checkbox" name="dietary" value="Low-Carb"> Low-Carb</label>
+                            <label><input type="checkbox" name="dietary" value="Vegetarian"> Vegetarian</label>
+                            <label><input type="checkbox" name="dietary" value="Dairy-Free"> Dairy-Free</label>
+                        </div>
                     </div>
                     <div>
                         <label for="ingredients">Ingredients (one per line)</label>

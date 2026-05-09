@@ -1,0 +1,24 @@
+{
+  "name": "cuisine-app",
+  "version": "1.0.0",
+  "description": "A modern recipe sharing and cooking guide application",
+  "main": "app.py",
+  "scripts": {
+    "sass": "sass --watch scss:. --style=compressed",
+    "sass:build": "sass scss/main.scss styles.css --style=compressed",
+    "sass:watch": "sass --watch scss:. --output-style=compressed",
+    "dev": "npm run sass:watch",
+    "build": "npm run sass:build"
+  },
+  "keywords": [
+    "recipe",
+    "cooking",
+    "food",
+    "sharing"
+  ],
+  "author": "Ihsan",
+  "license": "MIT",
+  "devDependencies": {
+    "sass": "^1.70.0"
+  }
+}
